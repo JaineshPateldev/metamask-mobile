@@ -2,10 +2,18 @@ import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { TouchableOpacity, StyleSheet } from 'react-native';
-import Identicon from '../Identicon';
 import { toggleAccountsModal } from '../../../actions/modals';
 import Device from '../../../util/device';
+import AvatarAccount, {
+  AvatarAccountType,
+} from '../../../component-library/components/Avatars/AvatarAccount';
 import AnalyticsV2 from '../../../util/analyticsV2';
+import BadgeWrapper from '../../../component-library/components/Badges/BadgeWrapper';
+import { BadgeVariants } from '../../../component-library/components/Badges/Badge/Badge.types';
+import AvatarNetwork from '../../../component-library/components/Avatars/AvatarNetwork';
+import { AvatarBaseSize } from '../../../component-library/components/Avatars/AvatarBase';
+import Networks, { getDefaultNetworkByChainId } from '../../../util/networks';
+import PopularList from '../../../util/networks/customNetworks';
 
 const styles = StyleSheet.create({
   leftButton: {
@@ -36,6 +44,22 @@ class AccountRightButton extends PureComponent {
      * List of accounts from the AccountTrackerController
      */
     accounts: PropTypes.object,
+    /**
+     * TODO: add comment
+     */
+    avatarAccountType: AvatarAccountType,
+    /**
+     * TODO: add comment
+     */
+    network: PropTypes.string,
+    /**
+     * TODO: add comment
+     */
+    isDappConnected: PropTypes.bool,
+  };
+
+  static defaultProps = {
+    isDappConnected: false,
   };
 
   animating = false;
@@ -58,15 +82,87 @@ class AccountRightButton extends PureComponent {
     );
   };
 
+  /**
+   * Get the current network name.
+   *
+   * @returns Current network name.
+   */
+  getNetworkName = (networkProvider) => {
+    let name = '';
+    if (networkProvider.nickname) {
+      name = networkProvider.nickname;
+    } else {
+      const networkType = networkProvider.type;
+      name = Networks?.[networkType]?.name || Networks.rpc.name;
+    }
+    return name;
+  };
+
+  /**
+   * Get image source for either default MetaMask networks or popular networks, which include networks such as Polygon, Binance, Avalanche, etc.
+   * @returns A network image from a local resource or undefined
+   */
+  getNetworkImageSource = (networkProvider) => {
+    const defaultNetwork = getDefaultNetworkByChainId(networkProvider.chainId);
+    if (defaultNetwork) {
+      return defaultNetwork.imageSource;
+    }
+    const popularNetwork = PopularList.find(
+      (network) => network.chainId === networkProvider.chainId,
+    );
+    if (popularNetwork) {
+      return popularNetwork.rpcPrefs.imageSource;
+    }
+  };
+
+  // getNetworkName(network) {
+  //   let name = { ...Networks.rpc, color: null }.name;
+  //
+  //   if (network && network.provider) {
+  //     if (network.provider.nickname) {
+  //       name = network.provider.nickname;
+  //     } else if (network.provider.type) {
+  //       const currentNetwork = Networks[network.provider.type];
+  //       if (currentNetwork && currentNetwork.name) {
+  //         name = currentNetwork.name;
+  //       }
+  //     }
+  //   }
+  //
+  //   return name;
+  // }
+
   render = () => {
-    const { address } = this.props;
+    const { address, avatarAccountType, isDappConnected, network } = this.props;
+
+    const networkProvider = network.provider;
+
+    const networkName = this.getNetworkName(network);
+    const networkImage = this.getNetworkImageSource(networkProvider);
+
+    const networkBadgeProps = {
+      variant: BadgeVariants.Network,
+      name: networkName,
+      imageSource: '',
+    };
+
     return (
       <TouchableOpacity
         style={styles.leftButton}
         onPress={this.toggleAccountsModal}
         testID={'navbar-account-button'}
       >
-        <Identicon diameter={28} address={address} />
+        {isDappConnected ? (
+          <BadgeWrapper badgeProps={networkBadgeProps}>
+            <AvatarAccount type={avatarAccountType} accountAddress={address} />
+          </BadgeWrapper>
+        ) : (
+          <AvatarNetwork
+            size={AvatarBaseSize.Sm}
+            name={networkName}
+            imageSource={networkImage}
+          />
+        )}
       </TouchableOpacity>
     );
   };
@@ -75,6 +171,10 @@ class AccountRightButton extends PureComponent {
 const mapStateToProps = (state) => ({
   address: state.engine.backgroundState.PreferencesController.selectedAddress,
   accounts: state.engine.backgroundState.AccountTrackerController.accounts,
+  network: state.engine.backgroundState.NetworkController,
+  avatarAccountType: state.settings.useBlockieIcon
+    ? AvatarAccountType.Blockies
+    : AvatarAccountType.JazzIcon,
 });
 
 const mapDispatchToProps = (dispatch) => ({

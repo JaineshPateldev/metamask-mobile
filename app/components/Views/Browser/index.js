@@ -9,6 +9,7 @@ import {
   setActiveTab,
   updateTab,
 } from '../../../actions/browser';
+import { toggleAccountsModal } from '../../../actions/modals';
 import Tabs from '../../UI/Tabs';
 import { getBrowserViewNavbarOptions } from '../../UI/Navbar';
 import { captureScreen } from 'react-native-view-shot';
@@ -39,6 +40,8 @@ const Browser = (props) => {
     updateTab,
     activeTab: activeTabId,
     tabs,
+    accountAddress,
+    accounts,
   } = props;
   const { drawerRef } = useContext(DrawerContext);
   const previousTabs = useRef(null);
@@ -47,7 +50,15 @@ const Browser = (props) => {
   useEffect(
     () => {
       navigation.setOptions(
-        getBrowserViewNavbarOptions(navigation, route, drawerRef, colors),
+        getBrowserViewNavbarOptions(
+          navigation,
+          route,
+          drawerRef,
+          colors,
+          accountAddress,
+          accounts,
+          toggleAccountsModal,
+        ),
       );
     },
     /* eslint-disable-next-line */
@@ -264,6 +275,9 @@ const Browser = (props) => {
 const mapStateToProps = (state) => ({
   tabs: state.browser.tabs,
   activeTab: state.browser.activeTab,
+  accountAddress:
+    state.engine.backgroundState.PreferencesController.selectedAddress,
+  accounts: state.engine.backgroundState.AccountTrackerController.accounts,
 });
 
 const mapDispatchToProps = (dispatch) => ({
@@ -272,6 +286,7 @@ const mapDispatchToProps = (dispatch) => ({
   closeTab: (id) => dispatch(closeTab(id)),
   setActiveTab: (id) => dispatch(setActiveTab(id)),
   updateTab: (id, url) => dispatch(updateTab(id, url)),
+  toggleAccountsModal: () => dispatch(toggleAccountsModal()),
 });
 
 Browser.propTypes = {
@@ -307,6 +322,14 @@ Browser.propTypes = {
    * ID of the active tab
    */
   activeTab: PropTypes.number,
+  /**
+   * TODO: update this comment
+   */
+  accountAddress: PropTypes.string,
+  /**
+   * TODO: update this comment
+   */
+  accounts: PropTypes.array,
   /**
    * Object that represents the current route info like params passed to it
    */

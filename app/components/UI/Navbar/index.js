@@ -31,6 +31,12 @@ import { isGatewayUrl } from '../../../lib/ens-ipfs/resolver';
 import { getHost } from '../../../util/browser';
 import { BACK_ARROW_BUTTON_ID } from '../../../constants/test-ids';
 import PickerNetwork from '../../../component-library/components/Pickers/PickerNetwork';
+import AvatarAccount, {
+  AvatarAccountType,
+} from '../../../component-library/components/Avatars/AvatarAccount';
+import Icon, { IconName } from '../../../component-library/components/Icon';
+import CLText from '../../../component-library/components/Text';
+import AnalyticsV2 from '../../../util/analyticsV2';
 
 const { HOMEPAGE_URL } = AppConstants;
 
@@ -85,7 +91,12 @@ const styles = StyleSheet.create({
   },
   browserRightButton: {
     flex: 1,
-    marginRight: Device.isAndroid() ? 10 : 0,
+    marginRight: Device.isAndroid() ? 17 : 18,
+    marginLeft: Device.isAndroid() ? 7 : 0,
+    marginTop: 12,
+    marginBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   disabled: {
     opacity: 0.3,
@@ -567,6 +578,9 @@ export function getBrowserViewNavbarOptions(
   route,
   drawerRef,
   themeColors,
+  accountAddress,
+  accounts,
+  toggleAccountsModal,
 ) {
   const innerStyles = StyleSheet.create({
     headerStyle: {
@@ -587,7 +601,7 @@ export function getBrowserViewNavbarOptions(
   const error = route.params?.error ?? '';
   const icon = route.params?.icon;
 
-  if (url && !isHomepage(url)) {
+  if (url) {
     isHttps = url && url.toLowerCase().substr(0, 6) === 'https:';
     const urlObj = new URL(url);
     //Using host so the port number will be displayed on the address bar
@@ -611,22 +625,10 @@ export function getBrowserViewNavbarOptions(
     trackEvent(ANALYTICS_EVENT_OPTS.COMMON_TAPS_HAMBURGER_MENU);
   }
 
-  return {
-    gestureEnabled: false,
-    headerLeft: () => (
-      <TouchableOpacity
-        onPress={onPress}
-        style={styles.hamburgerButton}
-        testID={'hamburger-menu-button-browser'}
-      >
-        <IonicIcon
-          name={Device.isAndroid() ? 'md-menu' : 'ios-menu'}
-          size={Device.isAndroid() ? 24 : 28}
-          style={innerStyles.headerIcon}
-        />
-      </TouchableOpacity>
-    ),
-    headerTitle: () => (
+  const _dev_enableHeaderTitle = false;
+
+  const headerTitle = () =>
+    _dev_enableHeaderTitle ? (
       <NavbarBrowserTitle
         error={!!error}
         icon={url && !isHomepage(url) ? icon : null}
@@ -636,12 +638,73 @@ export function getBrowserViewNavbarOptions(
         hostname={host}
         https={isHttps}
       />
-    ),
-    headerRight: () => (
-      <View style={styles.browserRightButton}>
-        <AccountRightButton />
-      </View>
-    ),
+    ) : null;
+
+  const devStyles = {
+    flexDirection: 'row',
+    marginLeft: 23,
+    marginRight: 23,
+  };
+
+  const greyFromFigma = themeColors.icon.alternative;
+
+  const devTextStyle = {
+    flex: 1,
+    marginLeft: 6,
+    color: greyFromFigma,
+    width: 260,
+  };
+
+  const _dev_Text = false;
+
+  const secureConnectionIcon = isHttps
+    ? IconName.LockFilled
+    : IconName.LockSlashFilled;
+  const rendererUrl = _dev_Text
+    ? 'app.metamask.io/reallyreallyreallylongurl/itshouldellipse'
+    : host;
+
+  const handleUrlPress = () => route.params?.showUrlModal?.();
+
+  const headerLeft = () => (
+    <TouchableOpacity onPress={handleUrlPress} style={devStyles}>
+      <Icon color={greyFromFigma} name={secureConnectionIcon} />
+      <CLText numberOfLines={1} style={devTextStyle}>
+        {rendererUrl}
+      </CLText>
+    </TouchableOpacity>
+  );
+
+  let animating = false;
+
+  const handleAccountModalPress = () => {
+    if (!animating) {
+      animating = true;
+      console.log(animating);
+      toggleAccountsModal();
+      console.log(toggleAccountsModal);
+      setTimeout(() => {
+        animating = false;
+      }, 500);
+    }
+    // Track Event: "Opened Acount Switcher"
+    AnalyticsV2.trackEvent(
+      AnalyticsV2.ANALYTICS_EVENTS.BROWSER_OPEN_ACCOUNT_SWITCH,
+      {
+        number_of_accounts: Object.keys(accounts ?? {}).length,
+      },
+    );
+  };
+
+  const accountAvatarType = AvatarAccountType.JazzIcon;
+
+  const handleAvatarPress = handleAccountModalPress;
+
+  return {
+    gestureEnabled: false,
+    headerLeft,
+    headerTitle,
+    headerRight: () => <AccountRightButton />,
     headerStyle: innerStyles.headerStyle,
   };
 }
