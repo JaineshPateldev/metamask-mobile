@@ -31,9 +31,7 @@ import { isGatewayUrl } from '../../../lib/ens-ipfs/resolver';
 import { getHost } from '../../../util/browser';
 import { BACK_ARROW_BUTTON_ID } from '../../../constants/test-ids';
 import PickerNetwork from '../../../component-library/components/Pickers/PickerNetwork';
-import AvatarAccount, {
-  AvatarAccountType,
-} from '../../../component-library/components/Avatars/AvatarAccount';
+import { AvatarAccountType } from '../../../component-library/components/Avatars/AvatarAccount';
 import Icon, { IconName } from '../../../component-library/components/Icon';
 import CLText from '../../../component-library/components/Text';
 import AnalyticsV2 from '../../../util/analyticsV2';
@@ -625,21 +623,6 @@ export function getBrowserViewNavbarOptions(
     trackEvent(ANALYTICS_EVENT_OPTS.COMMON_TAPS_HAMBURGER_MENU);
   }
 
-  const _dev_enableHeaderTitle = false;
-
-  const headerTitle = () =>
-    _dev_enableHeaderTitle ? (
-      <NavbarBrowserTitle
-        error={!!error}
-        icon={url && !isHomepage(url) ? icon : null}
-        navigation={navigation}
-        route={route}
-        url={url}
-        hostname={host}
-        https={isHttps}
-      />
-    ) : null;
-
   const devStyles = {
     flexDirection: 'row',
     marginLeft: 23,
@@ -655,14 +638,9 @@ export function getBrowserViewNavbarOptions(
     width: 260,
   };
 
-  const _dev_Text = false;
-
   const secureConnectionIcon = isHttps
     ? IconName.LockFilled
     : IconName.LockSlashFilled;
-  const rendererUrl = _dev_Text
-    ? 'app.metamask.io/reallyreallyreallylongurl/itshouldellipse'
-    : host;
 
   const handleUrlPress = () => route.params?.showUrlModal?.();
 
@@ -670,40 +648,15 @@ export function getBrowserViewNavbarOptions(
     <TouchableOpacity onPress={handleUrlPress} style={devStyles}>
       <Icon color={greyFromFigma} name={secureConnectionIcon} />
       <CLText numberOfLines={1} style={devTextStyle}>
-        {rendererUrl}
+        {host}
       </CLText>
     </TouchableOpacity>
   );
 
-  let animating = false;
-
-  const handleAccountModalPress = () => {
-    if (!animating) {
-      animating = true;
-      console.log(animating);
-      toggleAccountsModal();
-      console.log(toggleAccountsModal);
-      setTimeout(() => {
-        animating = false;
-      }, 500);
-    }
-    // Track Event: "Opened Acount Switcher"
-    AnalyticsV2.trackEvent(
-      AnalyticsV2.ANALYTICS_EVENTS.BROWSER_OPEN_ACCOUNT_SWITCH,
-      {
-        number_of_accounts: Object.keys(accounts ?? {}).length,
-      },
-    );
-  };
-
-  const accountAvatarType = AvatarAccountType.JazzIcon;
-
-  const handleAvatarPress = handleAccountModalPress;
-
   return {
     gestureEnabled: false,
     headerLeft,
-    headerTitle,
+    headerTitle: null,
     headerRight: () => <AccountRightButton />,
     headerStyle: innerStyles.headerStyle,
   };
