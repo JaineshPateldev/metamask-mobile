@@ -3,7 +3,6 @@ import React from 'react';
 import NavbarTitle from '../NavbarTitle';
 import ModalNavbarTitle from '../ModalNavbarTitle';
 import AccountRightButton from '../AccountRightButton';
-import NavbarBrowserTitle from '../NavbarBrowserTitle';
 import {
   Alert,
   Text,
@@ -19,7 +18,6 @@ import IonicIcon from 'react-native-vector-icons/Ionicons';
 import AntIcon from 'react-native-vector-icons/AntDesign';
 import EvilIcons from 'react-native-vector-icons/EvilIcons';
 import MaterialCommunityIcon from 'react-native-vector-icons/MaterialCommunityIcons';
-import URL from 'url-parse';
 import { strings } from '../../../../locales/i18n';
 import AppConstants from '../../../core/AppConstants';
 import DeeplinkManager from '../../../core/DeeplinkManager';
@@ -27,17 +25,9 @@ import Analytics from '../../../core/Analytics/Analytics';
 import { ANALYTICS_EVENT_OPTS } from '../../../util/analytics';
 import { importAccountFromPrivateKey } from '../../../util/address';
 import Device from '../../../util/device';
-import { isGatewayUrl } from '../../../lib/ens-ipfs/resolver';
-import { getHost } from '../../../util/browser';
 import { BACK_ARROW_BUTTON_ID } from '../../../constants/test-ids';
 import PickerNetwork from '../../../component-library/components/Pickers/PickerNetwork';
-import { AvatarAccountType } from '../../../component-library/components/Avatars/AvatarAccount';
-import Icon, { IconName } from '../../../component-library/components/Icon';
-import CLText from '../../../component-library/components/Text';
-import AnalyticsV2 from '../../../util/analyticsV2';
 import BrowserUrlBar from '../BrowserUrlBar';
-
-const { HOMEPAGE_URL } = AppConstants;
 
 const trackEvent = (event) => {
   InteractionManager.runAfterInteractions(() => {
