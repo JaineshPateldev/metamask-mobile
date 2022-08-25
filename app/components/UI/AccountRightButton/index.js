@@ -45,21 +45,27 @@ class AccountRightButton extends PureComponent {
      */
     accounts: PropTypes.object,
     /**
-     * TODO: add comment
+     * Account avatar type.
+     * Possible ones are JazzIcon and Blockies
      */
-    avatarAccountType: AvatarAccountType,
+    avatarAccountType: PropTypes.oneOf(Object.keys(AvatarAccountType)),
     /**
-     * TODO: add comment
+     * Currently connected network
      */
     network: PropTypes.string,
     /**
-     * TODO: add comment
+     * Boolean flag that identifies if dapp is connected or not
      */
     isDappConnected: PropTypes.bool,
   };
 
   static defaultProps = {
-    isDappConnected: false,
+    /**
+     * isDappConnected defaults to true while permission system
+     * is in development & connect modals are not yet implemented.
+     * TODO: Remove the default value once the Permission system feature gets completed
+     */
+    isDappConnected: true,
   };
 
   animating = false;
@@ -115,23 +121,6 @@ class AccountRightButton extends PureComponent {
     }
   };
 
-  // getNetworkName(network) {
-  //   let name = { ...Networks.rpc, color: null }.name;
-  //
-  //   if (network && network.provider) {
-  //     if (network.provider.nickname) {
-  //       name = network.provider.nickname;
-  //     } else if (network.provider.type) {
-  //       const currentNetwork = Networks[network.provider.type];
-  //       if (currentNetwork && currentNetwork.name) {
-  //         name = currentNetwork.name;
-  //       }
-  //     }
-  //   }
-  //
-  //   return name;
-  // }
-
   render = () => {
     const { address, avatarAccountType, isDappConnected, network } = this.props;
 
@@ -143,7 +132,7 @@ class AccountRightButton extends PureComponent {
     const networkBadgeProps = {
       variant: BadgeVariants.Network,
       name: networkName,
-      imageSource: '',
+      imageSource: networkImage,
     };
 
     return (
