@@ -2,16 +2,17 @@ import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { TouchableOpacity, StyleSheet } from 'react-native';
-import { toggleAccountsModal } from '../../../actions/modals';
-import Device from '../../../util/device';
+
 import AvatarAccount, {
   AvatarAccountType,
 } from '../../../component-library/components/Avatars/AvatarAccount';
-import AnalyticsV2 from '../../../util/analyticsV2';
 import BadgeWrapper from '../../../component-library/components/Badges/BadgeWrapper';
 import { BadgeVariants } from '../../../component-library/components/Badges/Badge/Badge.types';
 import AvatarNetwork from '../../../component-library/components/Avatars/AvatarNetwork';
 import { AvatarBaseSize } from '../../../component-library/components/Avatars/AvatarBase';
+import { toggleAccountsModal } from '../../../actions/modals';
+import Device from '../../../util/device';
+import AnalyticsV2 from '../../../util/analyticsV2';
 import Networks, { getDefaultNetworkByChainId } from '../../../util/networks';
 import PopularList from '../../../util/networks/customNetworks';
 
