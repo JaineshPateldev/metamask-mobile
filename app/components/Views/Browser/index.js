@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { connect } from 'react-redux';
 import { View, Dimensions } from 'react-native';
 import PropTypes from 'prop-types';
@@ -9,7 +9,6 @@ import {
   setActiveTab,
   updateTab,
 } from '../../../actions/browser';
-import { toggleAccountsModal } from '../../../actions/modals';
 import Tabs from '../../UI/Tabs';
 import { getBrowserViewNavbarOptions } from '../../UI/Navbar';
 import { captureScreen } from 'react-native-view-shot';
@@ -18,7 +17,6 @@ import Device from '../../../util/device';
 import BrowserTab from '../BrowserTab';
 import AppConstants from '../../../core/AppConstants';
 import { baseStyles } from '../../../styles/common';
-import { DrawerContext } from '../../Nav/Main/MainNavigator';
 import { useTheme } from '../../../util/theme';
 
 const margin = 16;
@@ -40,26 +38,13 @@ const Browser = (props) => {
     updateTab,
     activeTab: activeTabId,
     tabs,
-    accountAddress,
-    accounts,
   } = props;
-  const { drawerRef } = useContext(DrawerContext);
   const previousTabs = useRef(null);
   const { colors } = useTheme();
 
   useEffect(
     () => {
-      navigation.setOptions(
-        getBrowserViewNavbarOptions(
-          navigation,
-          route,
-          drawerRef,
-          colors,
-          accountAddress,
-          accounts,
-          toggleAccountsModal,
-        ),
-      );
+      navigation.setOptions(getBrowserViewNavbarOptions(route, colors));
     },
     /* eslint-disable-next-line */
     [navigation, route, colors],
@@ -275,9 +260,6 @@ const Browser = (props) => {
 const mapStateToProps = (state) => ({
   tabs: state.browser.tabs,
   activeTab: state.browser.activeTab,
-  accountAddress:
-    state.engine.backgroundState.PreferencesController.selectedAddress,
-  accounts: state.engine.backgroundState.AccountTrackerController.accounts,
 });
 
 const mapDispatchToProps = (dispatch) => ({
@@ -286,7 +268,6 @@ const mapDispatchToProps = (dispatch) => ({
   closeTab: (id) => dispatch(closeTab(id)),
   setActiveTab: (id) => dispatch(setActiveTab(id)),
   updateTab: (id, url) => dispatch(updateTab(id, url)),
-  toggleAccountsModal: () => dispatch(toggleAccountsModal()),
 });
 
 Browser.propTypes = {
@@ -322,14 +303,6 @@ Browser.propTypes = {
    * ID of the active tab
    */
   activeTab: PropTypes.number,
-  /**
-   * TODO: update this comment
-   */
-  accountAddress: PropTypes.string,
-  /**
-   * TODO: update this comment
-   */
-  accounts: PropTypes.array,
   /**
    * Object that represents the current route info like params passed to it
    */

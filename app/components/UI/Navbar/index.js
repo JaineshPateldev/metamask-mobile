@@ -35,6 +35,7 @@ import { AvatarAccountType } from '../../../component-library/components/Avatars
 import Icon, { IconName } from '../../../component-library/components/Icon';
 import CLText from '../../../component-library/components/Text';
 import AnalyticsV2 from '../../../util/analyticsV2';
+import BrowserUrlBar from '../BrowserUrlBar';
 
 const { HOMEPAGE_URL } = AppConstants;
 
@@ -571,15 +572,7 @@ export function getSendFlowTitle(title, navigation, route, themeColors) {
  * @param {Object} navigation - Navigation object required to push new views
  * @returns {Object} - Corresponding navbar options containing headerTitle, headerLeft and headerRight
  */
-export function getBrowserViewNavbarOptions(
-  navigation,
-  route,
-  drawerRef,
-  themeColors,
-  accountAddress,
-  accounts,
-  toggleAccountsModal,
-) {
+export function getBrowserViewNavbarOptions(route, themeColors) {
   const innerStyles = StyleSheet.create({
     headerStyle: {
       backgroundColor: themeColors.background.default,
@@ -592,70 +585,14 @@ export function getBrowserViewNavbarOptions(
   });
 
   const url = route.params?.url ?? '';
-  let host = null;
-  let isHttps = false;
-
-  const isHomepage = (url) => getHost(url) === getHost(HOMEPAGE_URL);
-  const error = route.params?.error ?? '';
-  const icon = route.params?.icon;
-
-  if (url) {
-    isHttps = url && url.toLowerCase().substr(0, 6) === 'https:';
-    const urlObj = new URL(url);
-    //Using host so the port number will be displayed on the address bar
-    host = urlObj.host.toLowerCase().replace(/^www\./, '');
-    if (
-      isGatewayUrl(urlObj) &&
-      url.search(`${AppConstants.IPFS_OVERRIDE_PARAM}=false`) === -1
-    ) {
-      const ensUrl = route.params?.currentEnsName ?? '';
-      if (ensUrl) {
-        host = ensUrl.toLowerCase().replace(/^www\./, '');
-      }
-    }
-  } else {
-    host = strings('browser.title');
-  }
-
-  function onPress() {
-    Keyboard.dismiss();
-    drawerRef.current?.showDrawer?.();
-    trackEvent(ANALYTICS_EVENT_OPTS.COMMON_TAPS_HAMBURGER_MENU);
-  }
-
-  const devStyles = {
-    flexDirection: 'row',
-    marginLeft: 23,
-    marginRight: 23,
-  };
-
-  const greyFromFigma = themeColors.icon.alternative;
-
-  const devTextStyle = {
-    flex: 1,
-    marginLeft: 6,
-    color: greyFromFigma,
-    width: 260,
-  };
-
-  const secureConnectionIcon = isHttps
-    ? IconName.LockFilled
-    : IconName.LockSlashFilled;
 
   const handleUrlPress = () => route.params?.showUrlModal?.();
 
-  const headerLeft = () => (
-    <TouchableOpacity onPress={handleUrlPress} style={devStyles}>
-      <Icon color={greyFromFigma} name={secureConnectionIcon} />
-      <CLText numberOfLines={1} style={devTextStyle}>
-        {host}
-      </CLText>
-    </TouchableOpacity>
-  );
-
   return {
     gestureEnabled: false,
-    headerLeft,
+    headerLeft: () => (
+      <BrowserUrlBar url={url} route={route} onPress={handleUrlPress} />
+    ),
     headerTitle: null,
     headerRight: () => <AccountRightButton />,
     headerStyle: innerStyles.headerStyle,
