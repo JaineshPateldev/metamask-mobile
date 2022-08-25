@@ -55,6 +55,8 @@ import Toast, {
   ToastContext,
 } from '../../../component-library/components/Toast';
 import { TurnOffRememberMeModal } from '../../../components/UI/TurnOffRememberMeModal';
+import { UpdateNeeded } from '../../../components/UI/UpdateNeeded';
+import useMinimumVersions from '../../hooks/useMinimumVersions';
 
 const Stack = createStackNavigator();
 /**
@@ -309,6 +311,8 @@ const App = ({ userLoggedIn }) => {
     }
   };
 
+  useMinimumVersions(navigator);
+
   const onAnimationFinished = useCallback(() => {
     Animated.timing(opacity, {
       toValue: 0,
@@ -355,6 +359,10 @@ const App = ({ userLoggedIn }) => {
       <Stack.Screen
         name={Routes.MODAL.TURN_OFF_REMEMBER_ME}
         component={TurnOffRememberMeModal}
+      />
+      <Stack.Screen
+        name={Routes.MODAL.UPDATE_NEEDED}
+        component={UpdateNeeded}
       />
     </Stack.Navigator>
   );

@@ -20,6 +20,7 @@ const Routes = {
     MODAL_CONFIRMATION: 'ModalConfirmation',
     WHATS_NEW: 'WhatsNewModal',
     TURN_OFF_REMEMBER_ME: 'TurnOffRememberMeModal',
+    UPDATE_NEEDED: 'UpdateNeeded',
   },
   ONBOARDING: {
     ROOT_NAV: 'OnboardingRootNav',
