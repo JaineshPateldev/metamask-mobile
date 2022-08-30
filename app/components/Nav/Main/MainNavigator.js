@@ -67,6 +67,7 @@ import Region from '../../UI/FiatOnRampAggregator/Views/Region';
 import ThemeSettings from '../../Views/ThemeSettings';
 import { colors as importedColors } from '../../../styles/common';
 import OrderDetails from '../../UI/FiatOnRampAggregator/Views/OrderDetails';
+import TabBar from '../../../component-library/components/Navigation/TabBar';
 import BrowserUrlModal from '../../Views/BrowserUrlModal';
 import Routes from '../../../constants/navigation/Routes';
 
@@ -77,9 +78,6 @@ const styles = StyleSheet.create({
   headerLogo: {
     width: 125,
     height: 50,
-  },
-  hidden: {
-    opacity: 0,
   },
 });
 
@@ -229,29 +227,39 @@ export const DrawerContext = React.createContext({ drawerRef: null });
 const HomeTabs = () => {
   const drawerRef = useRef(null);
 
+  const options = {
+    home: {
+      tabBarLabel: 'Wallet',
+    },
+    browser: {
+      tabBarLabel: 'Browser',
+    },
+  };
+
   return (
     <DrawerContext.Provider value={{ drawerRef }}>
       <Drawer ref={drawerRef}>
         <Tab.Navigator
           initialRouteName={'WalletTabHome'}
-          tabBarOptions={{ style: styles.hidden }}
-          screenOptions={{ tabBarVisible: false }}
+          tabBar={({ state, descriptors, navigation }) => (
+            <TabBar
+              state={state}
+              descriptors={descriptors}
+              navigation={navigation}
+            />
+          )}
         >
           <Tab.Screen
             name="WalletTabHome"
+            options={options.home}
             component={WalletTabModalFlow}
-            options={{ tabBarVisible: false }}
           />
           <Tab.Screen
             name={Routes.BROWSER_TAB_HOME}
+            options={options.browser}
             component={BrowserFlow}
-            options={{ tabBarVisible: false }}
           />
-          <Tab.Screen
-            name="TransactionsHome"
-            component={TransactionsHome}
-            options={{ tabBarVisible: false }}
-          />
+          <Tab.Screen name="TransactionsHome" component={TransactionsHome} />
         </Tab.Navigator>
       </Drawer>
     </DrawerContext.Provider>
@@ -616,7 +624,7 @@ const MainNavigator = () => (
         }),
       }}
     />
-    <Stack.Screen name="Home" tabBarVisible={false} component={HomeTabs} />
+    <Stack.Screen name="Home" component={HomeTabs} />
     <Stack.Screen name="Webview" component={Webview} />
     <Stack.Screen name="SettingsView" component={SettingsModalStack} />
     <Stack.Screen
