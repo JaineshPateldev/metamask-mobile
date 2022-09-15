@@ -1,4 +1,10 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from 'react';
 import {
   Text,
   StyleSheet,
@@ -16,7 +22,7 @@ import MaterialCommunityIcon from 'react-native-vector-icons/MaterialCommunityIc
 import BrowserBottomBar from '../../UI/BrowserBottomBar';
 import PropTypes from 'prop-types';
 import Share from 'react-native-share';
-import { connect } from 'react-redux';
+import { connect, useSelector } from 'react-redux';
 import BackgroundBridge from '../../../core/BackgroundBridge';
 import Engine from '../../../core/Engine';
 import PhishingModal from '../../UI/PhishingModal';
@@ -39,7 +45,6 @@ import { strings } from '../../../../locales/i18n';
 import URL from 'url-parse';
 import Modal from 'react-native-modal';
 import WebviewError from '../../UI/WebviewError';
-import { approveHost } from '../../../actions/privacy';
 import { addBookmark } from '../../../actions/bookmarks';
 import { addToHistory, addToWhitelist } from '../../../actions/browser';
 import Device from '../../../util/device';
@@ -66,6 +71,12 @@ import {
   MM_ETHERSCAN_URL,
 } from '../../../constants/urls';
 import sanitizeUrlInput from '../../../util/url/sanitizeUrlInput';
+import {
+  getPermittedAccounts,
+  getPermittedAccountsByOrigin,
+} from '../../../core/Permissions';
+import Routes from '../../../constants/navigation/Routes';
+import { isEqual } from 'lodash';
 
 const { HOMEPAGE_URL, USER_AGENT, NOTIFICATION_NAMES } = AppConstants;
 const HOMEPAGE_HOST = new URL(HOMEPAGE_URL)?.hostname;
@@ -214,12 +225,6 @@ const createStyles = (colors) =>
 
 const sessionENSNames = {};
 const ensIgnoreList = [];
-let approvedHosts = {};
-
-const getApprovedHosts = () => approvedHosts;
-const setApprovedHosts = (hosts) => {
-  approvedHosts = hosts;
-};
 
 export const BrowserTab = (props) => {
   const [backEnabled, setBackEnabled] = useState(false);
@@ -311,51 +316,16 @@ export const BrowserTab = (props) => {
     return currentHost === HOMEPAGE_HOST;
   }, []);
 
-  const notifyAllConnections = useCallback(
-    (payload, restricted = true) => {
-      const fullHostname = new URL(url.current).hostname;
+  const notifyAllConnections = useCallback((payload, restricted = true) => {
+    const fullHostname = new URL(url.current).hostname;
 
-      // TODO:permissions move permissioning logic elsewhere
-      backgroundBridges.current.forEach((bridge) => {
-        if (
-          bridge.hostname === fullHostname &&
-          (!props.privacyMode || !restricted || approvedHosts[bridge.hostname])
-        ) {
-          bridge.sendNotification(payload);
-        }
-      });
-    },
-    [props.privacyMode],
-  );
-
-  /**
-   * Manage hosts that were approved to connect with the user accounts
-   */
-  useEffect(() => {
-    const { approvedHosts: approvedHostsProps, selectedAddress } = props;
-
-    approvedHosts = approvedHostsProps;
-
-    const numApprovedHosts = Object.keys(approvedHosts).length;
-
-    // this will happen if the approved hosts were cleared
-    if (numApprovedHosts === 0) {
-      notifyAllConnections(
-        {
-          method: NOTIFICATION_NAMES.accountsChanged,
-          params: [],
-        },
-        false,
-      ); // notification should be sent regardless of approval status
-    }
-
-    if (numApprovedHosts > 0) {
-      notifyAllConnections({
-        method: NOTIFICATION_NAMES.accountsChanged,
-        params: [selectedAddress],
-      });
-    }
-  }, [notifyAllConnections, props, props.approvedHosts, props.selectedAddress]);
+    // TODO:permissions move permissioning logic elsewhere
+    backgroundBridges.current.forEach((bridge) => {
+      if (bridge.hostname === fullHostname) {
+        bridge.sendNotification(payload);
+      }
+    });
+  }, []);
 
   /**
    * Dismiss the text selection on the current website
@@ -589,7 +559,6 @@ export const BrowserTab = (props) => {
    * Set initial url, dapp scripts and engine. Similar to componentDidMount
    */
   useEffect(() => {
-    approvedHosts = props.approvedHosts;
     const initialUrl = props.initialUrl || HOMEPAGE_URL;
     go(initialUrl, true);
 
@@ -952,9 +921,6 @@ export const BrowserTab = (props) => {
           hostname,
           getProviderState,
           navigation: props.navigation,
-          getApprovedHosts,
-          setApprovedHosts,
-          approveHost: props.approveHost,
           // Website info
           url,
           title,
@@ -973,6 +939,23 @@ export const BrowserTab = (props) => {
     });
     backgroundBridges.current.push(newBridge);
   };
+
+  const sendActiveAccount = useCallback(async () => {
+    const hostname = new URL(url.current).hostname;
+    const accounts = await getPermittedAccounts(hostname);
+
+    notifyAllConnections({
+      method: NOTIFICATION_NAMES.accountsChanged,
+      params: accounts,
+    });
+
+    if (isTabActive()) {
+      props.navigation.setParams({
+        connectedAccounts: accounts,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notifyAllConnections, permittedAccountsList]);
 
   /**
    * Website started to load
@@ -995,6 +978,7 @@ export const BrowserTab = (props) => {
     setError(false);
 
     changeUrl(nativeEvent);
+    sendActiveAccount();
 
     icon.current = null;
     if (isHomepage(nativeEvent.url)) {
@@ -1013,19 +997,56 @@ export const BrowserTab = (props) => {
    * Enable the header to toggle the url modal and update other header data
    */
   useEffect(() => {
-    if (props.activeTab === props.id) {
-      props.navigation.setParams({
-        showUrlModal: toggleUrlModal,
-        url: getMaskedUrl(url.current),
-        icon: icon.current,
-        error,
-      });
-    }
+    const updateNavbar = async () => {
+      if (props.activeTab === props.id) {
+        const hostname = new URL(url.current).hostname;
+        const accounts = await getPermittedAccounts(hostname);
+        props.navigation.setParams({
+          showUrlModal: toggleUrlModal,
+          url: getMaskedUrl(url.current),
+          icon: icon.current,
+          error,
+          setAccountsPermissionsVisible: () => {
+            props.navigation.navigate(Routes.MODAL.ROOT_MODAL_FLOW, {
+              screen: Routes.SHEET.ACCOUNT_PERMISSIONS,
+              params: {
+                hostInfo: {
+                  metadata: {
+                    origin: url.current && new URL(url.current).hostname,
+                  },
+                },
+              },
+            });
+          },
+          connectedAccounts: accounts,
+        });
+      }
+    };
+
+    updateNavbar();
     /* we do not want to depend on the entire props object
 		- since we are changing it here, this would give us a circular dependency and infinite re renders
 		*/
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [error, props.activeTab, props.id, toggleUrlModal]);
+
+  const permittedAccountsList = useSelector((state) => {
+    const permissionsControllerState =
+      state.engine.backgroundState.PermissionController;
+    const hostname = new URL(url.current).hostname;
+    const permittedAcc = getPermittedAccountsByOrigin(
+      permissionsControllerState,
+      hostname,
+    );
+    return permittedAcc;
+  }, isEqual);
+
+  /**
+   * Check whenever permissions change / account changes for Dapp
+   */
+  useEffect(() => {
+    sendActiveAccount();
+  }, [sendActiveAccount, permittedAccountsList]);
 
   /**
    * Allow list updates do not propigate through the useCallbacks this updates a ref that is use in the callbacks
@@ -1409,14 +1430,6 @@ BrowserTab.propTypes = {
    */
   initialUrl: PropTypes.string,
   /**
-   * Called to approve account access for a given hostname
-   */
-  approveHost: PropTypes.func,
-  /**
-   * Map of hostnames with approved account access
-   */
-  approvedHosts: PropTypes.object,
-  /**
    * Protocol string to append to URLs that have none
    */
   defaultProtocol: PropTypes.string,
@@ -1436,10 +1449,6 @@ BrowserTab.propTypes = {
    * A string representing the network id
    */
   network: PropTypes.string,
-  /**
-   * Indicates whether privacy mode is enabled
-   */
-  privacyMode: PropTypes.bool,
   /**
    * A string that represents the selected address
    */
@@ -1508,13 +1517,11 @@ BrowserTab.defaultProps = {
 };
 
 const mapStateToProps = (state) => ({
-  approvedHosts: state.privacy.approvedHosts,
   bookmarks: state.bookmarks,
   ipfsGateway: state.engine.backgroundState.PreferencesController.ipfsGateway,
   network: state.engine.backgroundState.NetworkController.network,
   selectedAddress:
     state.engine.backgroundState.PreferencesController.selectedAddress?.toLowerCase(),
-  privacyMode: state.privacy.privacyMode,
   searchEngine: state.settings.searchEngine,
   whitelist: state.browser.whitelist,
   activeTab: state.browser.activeTab,
@@ -1522,7 +1529,6 @@ const mapStateToProps = (state) => ({
 });
 
 const mapDispatchToProps = (dispatch) => ({
-  approveHost: (hostname) => dispatch(approveHost(hostname)),
   addBookmark: (bookmark) => dispatch(addBookmark(bookmark)),
   addToBrowserHistory: ({ url, name }) => dispatch(addToHistory({ url, name })),
   addToWhitelist: (url) => dispatch(addToWhitelist(url)),

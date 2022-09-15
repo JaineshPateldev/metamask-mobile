@@ -30,7 +30,7 @@ import {
   getTokenValueParamAsHex,
   isSwapTransaction,
 } from '../../../util/transactions';
-import { BN } from 'ethereumjs-util';
+import { BN, toChecksumAddress } from 'ethereumjs-util';
 import Logger from '../../../util/Logger';
 import MessageSign from '../../UI/MessageSign';
 import Approve from '../../Views/ApproveView/Approve';
@@ -57,6 +57,8 @@ import { useTheme } from '../../../util/theme';
 import withQRHardwareAwareness from '../../UI/QRHardware/withQRHardwareAwareness';
 import QRSigningModal from '../../UI/QRHardware/QRSigningModal';
 import { networkSwitched } from '../../../actions/onboardNetwork';
+import AccountListPermissions from '../../../components/UI/AccountListPermissions';
+import Routes from '../../../constants/navigation/Routes';
 
 const hstInterface = new ethers.utils.Interface(abi);
 
@@ -602,16 +604,27 @@ const RootRPCMethodsUI = (props) => {
   /**
    * When user clicks on approve to connect with a dapp
    */
-  const onAccountsConfirm = () => {
-    acceptPendingApproval(hostToApprove.id, hostToApprove.requestData);
+  const onAccountsConfirm = async (address) => {
+    const request = {
+      ...hostToApprove.data,
+      permissions: { ...hostToApprove.data.permissions },
+      approvedAccounts: [toChecksumAddress(address)],
+    };
+
+    await Engine.context.PermissionController.acceptPermissionsRequest(request);
+
     setShowPendingApproval(false);
   };
 
   /**
    * When user clicks on reject to connect with a dapp
    */
-  const onAccountsReject = () => {
-    rejectPendingApproval(hostToApprove.id, hostToApprove.requestData);
+  const onAccountsReject = async () => {
+    const request = {
+      ...hostToApprove.data,
+    };
+
+    await Engine.context.PermissionController.acceptPermissionsRequest(request);
     setShowPendingApproval(false);
   };
 
@@ -632,6 +645,16 @@ const RootRPCMethodsUI = (props) => {
       onBackdropPress={onAccountsReject}
       swipeDirection={'down'}
     >
+      <AccountListPermissions
+        enableAccountsAddition
+        onAccountConnect={onAccountsConfirm}
+        hostname={
+          (currentPageMeta?.url && new URL(currentPageMeta?.url).hostname) ||
+          hostToApprove?.data?.metadata?.origin
+        }
+        currentPageInformation={currentPageMeta}
+        onCancel={onAccountsReject}
+      />
       <AccountApproval
         onCancel={onAccountsReject}
         onConfirm={onAccountsConfirm}
@@ -699,6 +722,21 @@ const RootRPCMethodsUI = (props) => {
         setCurrentPageMeta(requestData.pageMeta);
       }
       switch (request.type) {
+        case 'wallet_requestPermissions':
+          if (requestData?.permissions?.eth_accounts) {
+            props.navigation.navigate(Routes.MODAL.ROOT_MODAL_FLOW, {
+              screen: Routes.SHEET.ACCOUNT_CONNECT,
+              params: {
+                hostInfo: requestData,
+              },
+            });
+            // setHostToApprove({ data: requestData, id: request.id });
+            // showPendingApprovalModal({
+            //   type: ApprovalTypes.CONNECT_ACCOUNTS,
+            //   origin: request.origin,
+            // });
+          }
+          break;
         case ApprovalTypes.CONNECT_ACCOUNTS:
           setHostToApprove({ data: requestData, id: request.id });
           showPendingApprovalModal({
