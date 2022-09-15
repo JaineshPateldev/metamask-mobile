@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { SafeAreaView, View, Image } from 'react-native';
 import { createStyles } from './styles';
 import { strings } from '../../../../locales/i18n';
@@ -7,6 +7,7 @@ import StyledButton from '../StyledButton';
 import { createNavigationDetails } from '../../../util/navigation/navUtils';
 import Routes from '../../../constants/navigation/Routes';
 import { useTheme } from '../../../util/theme';
+import ReusableModal, { ReusableModalRef } from '../ReusableModal';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const onboardingDeviceImage = require('../../../images/swaps_onboard_device.png');
@@ -19,8 +20,9 @@ export const createUpdateNeededNavDetails = createNavigationDetails(
 const UpdateNeeded = () => {
   const { colors } = useTheme();
   const styles = createStyles(colors);
+  const modalRef = useRef<ReusableModalRef | null>(null);
   return (
-    <SafeAreaView style={styles.screen}>
+    <ReusableModal ref={modalRef} style={styles.screen}>
       <View style={styles.content}>
         <View style={styles.images}>
           <Image source={onboardingDeviceImage} />
@@ -37,7 +39,7 @@ const UpdateNeeded = () => {
           {strings('update_needed.primary_action')}
         </StyledButton>
       </View>
-    </SafeAreaView>
+    </ReusableModal>
   );
 };
 

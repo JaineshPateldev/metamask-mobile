@@ -5,16 +5,16 @@ export const createStyles = (colors: any) =>
   StyleSheet.create({
     screen: {
       flex: 1,
-      paddingHorizontal: 25,
+      paddingHorizontal: 24,
+      paddingVertical: 16,
       justifyContent: 'space-between',
       alignItems: 'center',
-      backgroundColor: colors.overlay.default,
-      ...StyleSheet.absoluteFillObject,
+      backgroundColor: colors.background.default,
     },
     content: {
       flex: 1,
       justifyContent: 'center',
-      marginVertical: 14,
+      paddingHorizontal: 14,
     },
     description: {
       textAlign: 'center',
